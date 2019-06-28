@@ -24,3 +24,6 @@ The API calls are done with an ```AsyncTask```. There is also a simple bitmap ca
 
 It would be good if a disk caching is implemented. Also some improvements on the layout in order to "beautyfy" it and some cool animations can be added.
 The UX can be improved with adding some error handling and messages when there is no internet connection.
+
+#### Relaese apk can be found in the project
+```app-release.apk```
