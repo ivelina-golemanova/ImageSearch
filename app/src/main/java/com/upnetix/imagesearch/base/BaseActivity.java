@@ -9,7 +9,7 @@ import androidx.databinding.ViewDataBinding;
 import androidx.lifecycle.ViewModelProviders;
 
 /**
- * The base activity class
+ * The base activity class which is responsible for setting up the binding
  * @param <VM> the view model for the activity
  */
 public abstract class BaseActivity<B extends ViewDataBinding, VM extends BaseViewModel> extends AppCompatActivity {
@@ -41,5 +41,14 @@ public abstract class BaseActivity<B extends ViewDataBinding, VM extends BaseVie
 
         viewModel = ViewModelProviders.of(this).get(getViewModelClass());
         binding = DataBindingUtil.setContentView(this, layoutResId);
+
+        onPrepare();
+    }
+
+    /**
+     * Called in onCreate. Override to prepare the screen.
+     */
+    protected void onPrepare(){
+
     }
 }
