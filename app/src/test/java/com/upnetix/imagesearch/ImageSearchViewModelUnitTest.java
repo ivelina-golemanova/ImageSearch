@@ -1,5 +1,6 @@
 package com.upnetix.imagesearch;
 
+import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import androidx.lifecycle.Observer;
 
 import com.upnetix.imagesearch.imagesearch.ImageSearchViewModel;
@@ -9,7 +10,9 @@ import com.upnetix.imagesearch.service.imagesearch.ImageSearchServiceImpl;
 import com.upnetix.imagesearch.service.imagesearch.SearchResult;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -22,6 +25,9 @@ public class ImageSearchViewModelUnitTest {
 
     private ImageSearchViewModel viewModel;
     private IImageSearchService imageSearchServiceMock;
+
+    @Rule
+    public TestRule rule = new InstantTaskExecutorRule();
 
     @Before
     public void setup() {
