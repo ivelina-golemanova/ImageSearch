@@ -7,4 +7,6 @@ import com.upnetix.imagesearch.service.imagesearch.Photo;
 public interface IDownloadService extends IService {
 
     void downloadImage(Photo photo, int position, ICallback<DownloadedImage> callback);
+
+    void stopDownloadTask(int position);
 }

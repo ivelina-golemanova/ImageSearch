@@ -8,18 +8,33 @@ import com.upnetix.imagesearch.service.base.ICallback;
 import com.upnetix.imagesearch.service.base.Result;
 import com.upnetix.imagesearch.service.imagesearch.Photo;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
 
 public class DownloadServiceImpl implements IDownloadService {
 
     private static final String url = "https://farm%s.staticflickr.com/%s/%s_%s.jpg";
+    private Map<Integer, AsyncTask> tasks = new HashMap<>();
 
     @Override
     public void downloadImage(Photo photo, int position, ICallback<DownloadedImage> callback) {
         String fullUrl = String.format(url, photo.getFarm(), photo.getServer(), photo.getId(), photo.getSecret());
-        new DownloadImageTask(callback, position).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, fullUrl);
-        //new DownloadImageTask(callback, position).execute(fullUrl);
+
+        AsyncTask downloadTask = new DownloadImageTask(callback, position).execute(fullUrl);
+        ;
+        tasks.put(position, downloadTask);
+    }
+
+    @Override
+    public void stopDownloadTask(int position) {
+        AsyncTask task = tasks.get(position);
+        if (task != null) {
+            task.cancel(true);
+        }
+        tasks.remove(position);
     }
 
     private static class DownloadImageTask extends AsyncTask<String, Integer, Result<DownloadedImage>> {
@@ -35,16 +50,27 @@ public class DownloadServiceImpl implements IDownloadService {
         @Override
         protected Result<DownloadedImage> doInBackground(String... strings) {
 
-            Result<DownloadedImage> result;
-            try {
-                String urlString = strings[0];
-                URL url = new URL(urlString);
-                InputStream content = (InputStream) url.getContent();
-                Bitmap bitmap = BitmapFactory.decodeStream(content);
-                DownloadedImage downloadedImage = new DownloadedImage(bitmap, position);
-                result = new Result<>(downloadedImage);
-            } catch (Exception e) {
-                result = new Result<>(e.getMessage());
+            Result<DownloadedImage> result = null;
+            if (!isCancelled()) {
+                InputStream stream = null;
+                try {
+                    String urlString = strings[0];
+                    URL url = new URL(urlString);
+                    stream = (InputStream) url.getContent();
+                    Bitmap bitmap = BitmapFactory.decodeStream(stream);
+                    DownloadedImage downloadedImage = new DownloadedImage(bitmap, position);
+                    result = new Result<>(downloadedImage);
+                } catch (Exception e) {
+                    result = new Result<>(e.getMessage());
+                } finally {
+                    try {
+                        if (stream != null) {
+                            stream.close();
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
             }
 
             return result;
@@ -53,10 +79,12 @@ public class DownloadServiceImpl implements IDownloadService {
         @Override
         protected void onPostExecute(Result<DownloadedImage> result) {
             super.onPostExecute(result);
-            if (result.getError() != null) {
-                callback.onError(result.getError());
-            } else if (result.getModel().getBitmap() != null) {
-                callback.onSuccess(result.getModel());
+            if (result != null && callback != null) {
+                if (result.getError() != null) {
+                    callback.onError(result.getError());
+                } else if (result.getModel().getBitmap() != null) {
+                    callback.onSuccess(result.getModel());
+                }
             }
         }
     }

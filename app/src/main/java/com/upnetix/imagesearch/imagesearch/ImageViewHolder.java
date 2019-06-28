@@ -4,18 +4,49 @@ import android.graphics.Bitmap;
 
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.upnetix.imagesearch.R;
 import com.upnetix.imagesearch.databinding.ItemImageBinding;
+import com.upnetix.imagesearch.service.base.ICallback;
+import com.upnetix.imagesearch.service.imagedownload.DownloadedImage;
+import com.upnetix.imagesearch.service.imagedownload.IDownloadService;
+import com.upnetix.imagesearch.service.imagesearch.Photo;
 
-public class ImageViewHolder extends RecyclerView.ViewHolder {
+class ImageViewHolder extends RecyclerView.ViewHolder {
 
     private ItemImageBinding binding;
+    private IDownloadService downloadService;
+    private int position;
 
-    public ImageViewHolder(ItemImageBinding binding) {
+    ImageViewHolder(ItemImageBinding binding, IDownloadService downloadService) {
         super(binding.getRoot());
         this.binding = binding;
+        this.downloadService = downloadService;
     }
 
-    public void updatePhoto(Bitmap bitmap) {
+    void showPhoto(Photo photo, final int position) {
+        this.position = position;
+        downloadService.downloadImage(photo, position, new ICallback<DownloadedImage>() {
+            @Override
+            public void onSuccess(DownloadedImage model) {
+                updatePhoto(model.getBitmap());
+            }
+
+            @Override
+            public void onError(String error) {
+                //show a placeholder
+            }
+        });
+    }
+
+    void stopPhotoDownload() {
+        downloadService.stopDownloadTask(position);
+
+        //remove current image and add placeholder
+        binding.ivImage.setImageBitmap(null);
+        binding.ivImage.setImageResource(R.drawable.ic_launcher_background);
+    }
+
+    private void updatePhoto(Bitmap bitmap) {
         binding.ivImage.setImageBitmap(bitmap);
     }
 
