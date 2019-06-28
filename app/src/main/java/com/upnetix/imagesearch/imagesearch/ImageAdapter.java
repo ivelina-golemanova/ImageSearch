@@ -7,7 +7,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.upnetix.imagesearch.databinding.ItemImageBinding;
-import com.upnetix.imagesearch.service.imagedownload.IDownloadService;
+import com.upnetix.imagesearch.service.imagedownload.IImageDownloadService;
 import com.upnetix.imagesearch.service.imagesearch.Photo;
 
 import java.util.List;
@@ -15,9 +15,9 @@ import java.util.List;
 public class ImageAdapter extends RecyclerView.Adapter<ImageViewHolder> {
 
     private List<Photo> data;
-    private IDownloadService downloadService;
+    private IImageDownloadService downloadService;
 
-    ImageAdapter(List<Photo> data, IDownloadService downloadService) {
+    ImageAdapter(List<Photo> data, IImageDownloadService downloadService) {
         this.data = data;
         this.downloadService = downloadService;
     }

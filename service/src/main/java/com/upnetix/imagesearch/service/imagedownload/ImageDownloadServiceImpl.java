@@ -5,6 +5,7 @@ import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 
 import com.upnetix.imagesearch.service.base.ICallback;
+import com.upnetix.imagesearch.service.base.IImageCache;
 import com.upnetix.imagesearch.service.base.Result;
 import com.upnetix.imagesearch.service.imagesearch.Photo;
 
@@ -14,18 +15,24 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
-public class DownloadServiceImpl implements IDownloadService {
+public class ImageDownloadServiceImpl implements IImageDownloadService {
 
     private static final String url = "https://farm%s.staticflickr.com/%s/%s_%s.jpg";
+
+    private IImageCache imageCache;
     private Map<Integer, AsyncTask> tasks = new HashMap<>();
 
     @Override
-    public void downloadImage(Photo photo, int position, ICallback<DownloadedImage> callback) {
+    public void downloadImage(Photo photo, int position, ICallback<Bitmap> callback) {
         String fullUrl = String.format(url, photo.getFarm(), photo.getServer(), photo.getId(), photo.getSecret());
 
-        AsyncTask downloadTask = new DownloadImageTask(callback, position).execute(fullUrl);
-        ;
-        tasks.put(position, downloadTask);
+        if (imageCache != null && imageCache.getBitmapFromMemoryCache(fullUrl) != null) {
+            Bitmap bitmap = imageCache.getBitmapFromMemoryCache(fullUrl);
+            callback.onSuccess(bitmap);
+        } else {
+            AsyncTask downloadTask = new DownloadImageTask(callback, imageCache).execute(fullUrl);
+            tasks.put(position, downloadTask);
+        }
     }
 
     @Override
@@ -37,20 +44,25 @@ public class DownloadServiceImpl implements IDownloadService {
         tasks.remove(position);
     }
 
-    private static class DownloadImageTask extends AsyncTask<String, Integer, Result<DownloadedImage>> {
+    @Override
+    public void setCacheService(IImageCache imageCache) {
+        this.imageCache = imageCache;
+    }
 
-        private ICallback<DownloadedImage> callback;
-        private int position;
+    private static class DownloadImageTask extends AsyncTask<String, Integer, Result<Bitmap>> {
 
-        DownloadImageTask(ICallback<DownloadedImage> callback, int position) {
+        private ICallback<Bitmap> callback;
+        private IImageCache imageCache;
+
+        DownloadImageTask(ICallback<Bitmap> callback, IImageCache imageCache) {
             this.callback = callback;
-            this.position = position;
+            this.imageCache = imageCache;
         }
 
         @Override
-        protected Result<DownloadedImage> doInBackground(String... strings) {
+        protected Result<Bitmap> doInBackground(String... strings) {
 
-            Result<DownloadedImage> result = null;
+            Result<Bitmap> result = null;
             if (!isCancelled()) {
                 InputStream stream = null;
                 try {
@@ -58,8 +70,15 @@ public class DownloadServiceImpl implements IDownloadService {
                     URL url = new URL(urlString);
                     stream = (InputStream) url.getContent();
                     Bitmap bitmap = BitmapFactory.decodeStream(stream);
-                    DownloadedImage downloadedImage = new DownloadedImage(bitmap, position);
-                    result = new Result<>(downloadedImage);
+
+                    if(bitmap != null) {
+                        if(imageCache != null){
+                            imageCache.addBitmapToMemoryCache(urlString, bitmap);
+                        }
+                        result = new Result<>(bitmap);
+                    } else {
+                        throw new Exception("Something went wrong with downloading the image");
+                    }
                 } catch (Exception e) {
                     result = new Result<>(e.getMessage());
                 } finally {
@@ -77,12 +96,12 @@ public class DownloadServiceImpl implements IDownloadService {
         }
 
         @Override
-        protected void onPostExecute(Result<DownloadedImage> result) {
+        protected void onPostExecute(Result<Bitmap> result) {
             super.onPostExecute(result);
             if (result != null && callback != null) {
                 if (result.getError() != null) {
                     callback.onError(result.getError());
-                } else if (result.getModel().getBitmap() != null) {
+                } else if (result.getModel() != null) {
                     callback.onSuccess(result.getModel());
                 }
             }

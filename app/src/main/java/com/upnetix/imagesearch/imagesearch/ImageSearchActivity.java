@@ -13,7 +13,8 @@ import com.upnetix.imagesearch.base.BaseActivity;
 import com.upnetix.imagesearch.databinding.ActivityImageSearchBinding;
 import com.upnetix.imagesearch.listeners.PaginationScrollListener;
 import com.upnetix.imagesearch.service.base.ServiceLocator;
-import com.upnetix.imagesearch.service.imagedownload.IDownloadService;
+import com.upnetix.imagesearch.service.imagedownload.IImageDownloadService;
+import com.upnetix.imagesearch.service.imagedownload.ImageMemoryCache;
 import com.upnetix.imagesearch.service.imagesearch.IImageSearchService;
 import com.upnetix.imagesearch.service.imagesearch.Photo;
 import com.upnetix.imagesearch.service.imagesearch.SearchResult;
@@ -41,7 +42,10 @@ public class ImageSearchActivity extends BaseActivity<ActivityImageSearchBinding
 
         viewModel.setService(ServiceLocator.get(IImageSearchService.class));
 
-        final ImageAdapter adapter = new ImageAdapter(new ArrayList<Photo>(), ServiceLocator.get(IDownloadService.class));
+        IImageDownloadService imageDownloadService = ServiceLocator.get(IImageDownloadService.class);
+        imageDownloadService.setCacheService(new ImageMemoryCache());
+
+        final ImageAdapter adapter = new ImageAdapter(new ArrayList<Photo>(), imageDownloadService);
         binding.rvImages.setAdapter(adapter);
         viewModel.getSearchResult().observe(this, new Observer<SearchResult>() {
             @Override
